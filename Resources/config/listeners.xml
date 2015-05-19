@@ -99,6 +99,7 @@
         <service id="stof_doctrine_extensions.event_listener.blame" class="%stof_doctrine_extensions.event_listener.blame.class%" public="false">
             <argument type="service" id="stof_doctrine_extensions.listener.blameable" />
             <argument type="service" id="security.context" on-invalid="null" />
+            <argument type="expression">service(parameter('ebidtech_doctrine_extensions.users_entity_manager'))</argument>
         </service>
 
         <!-- Uploadable -->

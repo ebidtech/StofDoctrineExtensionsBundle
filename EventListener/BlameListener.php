@@ -2,7 +2,7 @@
 
 namespace Stof\DoctrineExtensionsBundle\EventListener;
 
-use Gedmo\Loggable\LoggableListener;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\GetResponseEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
@@ -29,10 +29,19 @@ class BlameListener implements EventSubscriberInterface
      */
     private $blameableListener;
 
-    public function __construct(BlameableListener $blameableListener, SecurityContextInterface $securityContext = null)
-    {
+    /**
+     * @var EntityManagerInterface
+     */
+    private $entityManager;
+
+    public function __construct(
+        BlameableListener $blameableListener,
+        SecurityContextInterface $securityContext = null,
+        EntityManagerInterface $entityManager
+    ) {
         $this->blameableListener = $blameableListener;
         $this->securityContext = $securityContext;
+        $this->entityManager = $entityManager;
     }
 
     /**
@@ -52,7 +61,8 @@ class BlameListener implements EventSubscriberInterface
             $originalToken = $this->getOriginalToken($token);
 
             if ($originalToken instanceof TokenInterface) {
-                $this->blameableListener->setUserValue($originalToken->getUser());
+                $user = $this->entityManager->merge($originalToken->getUser());
+                $this->blameableListener->setUserValue($user);
             } else {
                 $this->blameableListener->setUserValue($token->getUser());
             }
