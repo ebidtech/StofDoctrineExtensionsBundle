@@ -6,6 +6,8 @@ use Gedmo\Loggable\LoggableListener;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\GetResponseEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
+use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
+use Symfony\Component\Security\Core\Role\SwitchUserRole;
 use Symfony\Component\Security\Core\SecurityContextInterface;
 
 /**
@@ -37,8 +39,15 @@ class LoggerListener implements EventSubscriberInterface
         }
 
         $token = $this->securityContext->getToken();
+
         if (null !== $token && $this->securityContext->isGranted('IS_AUTHENTICATED_REMEMBERED')) {
-            $this->loggableListener->setUsername($token);
+            $originalToken = $this->getOriginalToken($token);
+
+            if ($originalToken instanceof TokenInterface) {
+                $this->loggableListener->setUsername($originalToken);
+            } else {
+                $this->loggableListener->setUsername($token);
+            }
         }
     }
 
@@ -47,5 +56,23 @@ class LoggerListener implements EventSubscriberInterface
         return array(
             KernelEvents::REQUEST => 'onKernelRequest',
         );
+    }
+
+    /**
+     * Gets the original Token from a switched one.
+     *
+     * @param TokenInterface $token A switched TokenInterface instance
+     *
+     * @return TokenInterface|false The original TokenInterface instance, false if the current TokenInterface is not switched
+     */
+    private function getOriginalToken(TokenInterface $token)
+    {
+        foreach ($token->getRoles() as $role) {
+            if ($role instanceof SwitchUserRole) {
+                return $role->getSource();
+            }
+        }
+
+        return false;
     }
 }
