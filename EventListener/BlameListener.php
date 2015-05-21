@@ -37,7 +37,7 @@ class BlameListener implements EventSubscriberInterface
     public function __construct(
         BlameableListener $blameableListener,
         SecurityContextInterface $securityContext = null,
-        EntityManagerInterface $entityManager
+        $entityManager
     ) {
         $this->blameableListener = $blameableListener;
         $this->securityContext = $securityContext;
@@ -58,11 +58,18 @@ class BlameListener implements EventSubscriberInterface
         $token = $this->securityContext->getToken();
 
         if (null !== $token && $this->securityContext->isGranted('IS_AUTHENTICATED_REMEMBERED')) {
-            $originalToken = $this->getOriginalToken($token);
 
-            if ($originalToken instanceof TokenInterface) {
-                $user = $this->entityManager->merge($originalToken->getUser());
-                $this->blameableListener->setUserValue($user);
+            // if entity manager exists, then can check for original token (impersonate)
+            if ($this->entityManager instanceof EntityManagerInterface) {
+
+                $originalToken = $this->getOriginalToken($token);
+
+                if ($originalToken instanceof TokenInterface) {
+                    $user = $this->entityManager->merge($originalToken->getUser());
+                    $this->blameableListener->setUserValue($user);
+                } else {
+                    $this->blameableListener->setUserValue($token->getUser());
+                }
             } else {
                 $this->blameableListener->setUserValue($token->getUser());
             }
